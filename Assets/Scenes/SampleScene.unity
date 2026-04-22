@@ -554,7 +554,7 @@ GameObject:
   - component: {fileID: 2019240714}
   - component: {fileID: 2019240713}
   m_Layer: 0
-  m_Name: little-bear-idle_0
+  m_Name: little-bear
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
