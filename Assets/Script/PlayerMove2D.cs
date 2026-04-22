@@ -18,24 +18,28 @@ public class PlayerMove2D : MonoBehaviour
     public float groundRadius = 0.3f;
     public LayerMask groundLayer;
 
-    [Header("Wall Check (2 sides)")]
+    [Header("Wall Check")]
     public Transform wallCheckLeft;
     public Transform wallCheckRight;
     public float wallRadius = 0.3f;
     public LayerMask wallLayer;
-    public float wallSlideSpeed = 1.5f;
+    public float wallSlideSpeed = 1.5f; // 🔥 เพิ่มตัวนี้
 
     [Header("Wall Jump")]
-    public float wallJumpForceX = 6f;
+    public float wallJumpForceX = 7f;
     public float wallJumpForceY = 12f;
-    public float wallJumpLockTime = 0.15f;
+    public float wallJumpLockTime = 0.2f;
+
+    [Header("Physics")]
+    public float defaultGravity = 3f;
 
     private float moveInput;
     private bool isGrounded;
     private bool onWallLeft;
     private bool onWallRight;
+
     private bool isWallJumping;
-    private float lockTimer;
+    private float wallJumpTimer;
 
     void Start()
     {
@@ -52,19 +56,31 @@ public class PlayerMove2D : MonoBehaviour
         if (moveInput != 0)
             sr.flipX = moveInput < 0;
 
-        // Ground
+        // Ground check
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
 
-        // Wall (2 ด้าน)
+        // Wall check
         onWallLeft = Physics2D.OverlapCircle(wallCheckLeft.position, wallRadius, wallLayer);
         onWallRight = Physics2D.OverlapCircle(wallCheckRight.position, wallRadius, wallLayer);
 
         bool isOnWall = (onWallLeft || onWallRight) && !isGrounded;
 
-        // 🧗 Slide
-        if (isOnWall && moveInput != 0 && !isWallJumping)
+        // 🧗 Wall Slide (ไถลลงช้า ๆ)
+        if (isOnWall && !isWallJumping)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, -wallSlideSpeed);
+            rb.gravityScale = defaultGravity;
+
+            if (rb.linearVelocity.y < -wallSlideSpeed)
+            {
+                rb.linearVelocity = new Vector2(
+                    rb.linearVelocity.x,
+                    -wallSlideSpeed
+                );
+            }
+        }
+        else
+        {
+            rb.gravityScale = defaultGravity;
         }
 
         // ⬆️ Jump
@@ -76,19 +92,19 @@ public class PlayerMove2D : MonoBehaviour
             }
             else if (onWallLeft)
             {
-                WallJump(1); // เด้งไปขวา
+                WallJump(1);
             }
             else if (onWallRight)
             {
-                WallJump(-1); // เด้งไปซ้าย
+                WallJump(-1);
             }
         }
 
-        // ⏱ lock control ชั่วคราว
+        // ⏱ lock
         if (isWallJumping)
         {
-            lockTimer -= Time.deltaTime;
-            if (lockTimer <= 0)
+            wallJumpTimer -= Time.deltaTime;
+            if (wallJumpTimer <= 0)
                 isWallJumping = false;
         }
 
@@ -110,12 +126,12 @@ public class PlayerMove2D : MonoBehaviour
     void WallJump(int direction)
     {
         isWallJumping = true;
-        lockTimer = wallJumpLockTime;
+        wallJumpTimer = wallJumpLockTime;
 
-        // 🔥 รีเซ็ตแรงตกก่อน
-        rb.linearVelocity = new Vector2(0, 0);
+        rb.gravityScale = defaultGravity;
 
-        // 🔥 เด้งออก + ขึ้น
+        rb.linearVelocity = Vector2.zero;
+
         rb.linearVelocity = new Vector2(
             direction * wallJumpForceX,
             wallJumpForceY
