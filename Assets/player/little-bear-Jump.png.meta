@@ -1,10 +1,19 @@
 fileFormatVersion: 2
-guid: 2ae14c2f9980e404a83ff162b72ddd7d
+guid: 40bf27337ad6db94ba06c2eb3602ff58
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 6111344662444742701
-    second: Screenshot 2026-04-22 222822_0
+      213: 3968842520916738854
+    second: little-bear-Jump_0
+  - first:
+      213: -2767323318385200877
+    second: little-bear-Jump_1
+  - first:
+      213: 1063423623419686317
+    second: little-bear-Jump_2
+  - first:
+      213: -4607791583126583298
+    second: little-bear-Jump_3
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +122,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Screenshot 2026-04-22 222822_0
+      name: little-bear-Jump_0
       rect:
         serializedVersion: 2
-        x: 0
+        x: 5
         y: 0
-        width: 1319
-        height: 325
+        width: 17
+        height: 20
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +137,74 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: d289ff8579bdfc450800000000000000
-      internalID: 6111344662444742701
+      spriteID: 62345b4be39241730800000000000000
+      internalID: 3968842520916738854
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: little-bear-Jump_1
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 11
+        width: 19
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 311bef49a1e7899d0800000000000000
+      internalID: -2767323318385200877
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: little-bear-Jump_2
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 3
+        width: 19
+        height: 29
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dad60b7b62a02ce00800000000000000
+      internalID: 1063423623419686317
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: little-bear-Jump_3
+      rect:
+        serializedVersion: 2
+        x: 104
+        y: 0
+        width: 17
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ef784b0e7f5dd00c0800000000000000
+      internalID: -4607791583126583298
       vertices: []
       indices: 
       edges: []
@@ -148,7 +223,10 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Screenshot 2026-04-22 222822_0: 6111344662444742701
+      little-bear-Jump_0: 3968842520916738854
+      little-bear-Jump_1: -2767323318385200877
+      little-bear-Jump_2: 1063423623419686317
+      little-bear-Jump_3: -4607791583126583298
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
