@@ -1,13 +1,10 @@
 fileFormatVersion: 2
-guid: 3eb043de4c1370b41bf6109e7efe9a4b
+guid: f4c07072b06a6cf40ab36702ab85cc8f
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 1748634415073283487
-    second: little-bear-WallJump_0
-  - first:
-      213: -3973417906854532675
-    second: little-bear-WallJump_1
+      213: -3753126175744366835
+    second: Screenshot 2026-04-22 222843_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -78,7 +75,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 1
     textureFormat: -1
-    textureCompression: 0
+    textureCompression: 2
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -116,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: little-bear-WallJump_0
+      name: Screenshot 2026-04-22 222843_0
       rect:
         serializedVersion: 2
-        x: 17
-        y: 12
-        width: 19
-        height: 20
+        x: 0
+        y: 0
+        width: 1321
+        height: 286
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -131,30 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f9d47706cb5644810800000000000000
-      internalID: 1748634415073283487
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: little-bear-WallJump_1
-      rect:
-        serializedVersion: 2
-        x: 55
-        y: 3
-        width: 19
-        height: 29
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: db962cd37759bd8c0800000000000000
-      internalID: -3973417906854532675
+      spriteID: d076989c0a73aebc0800000000000000
+      internalID: -3753126175744366835
       vertices: []
       indices: 
       edges: []
@@ -173,8 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      little-bear-WallJump_0: 1748634415073283487
-      little-bear-WallJump_1: -3973417906854532675
+      Screenshot 2026-04-22 222843_0: -3753126175744366835
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
