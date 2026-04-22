@@ -23,12 +23,17 @@ public class PlayerMove2D : MonoBehaviour
     public Transform wallCheckRight;
     public float wallRadius = 0.3f;
     public LayerMask wallLayer;
-    public float wallSlideSpeed = 1.5f; // 🔥 เพิ่มตัวนี้
+    public float wallSlideSpeed = 1.5f;
 
     [Header("Wall Jump")]
     public float wallJumpForceX = 7f;
     public float wallJumpForceY = 12f;
     public float wallJumpLockTime = 0.2f;
+
+    [Header("Dash")]
+    public float dashForce = 15f;
+    public float dashTime = 0.2f;
+    public float dashCooldown = 0.5f;
 
     [Header("Physics")]
     public float defaultGravity = 3f;
@@ -40,6 +45,10 @@ public class PlayerMove2D : MonoBehaviour
 
     private bool isWallJumping;
     private float wallJumpTimer;
+
+    private bool isDashing;
+    private float dashTimer;
+    private float dashCooldownTimer;
 
     void Start()
     {
@@ -65,20 +74,17 @@ public class PlayerMove2D : MonoBehaviour
 
         bool isOnWall = (onWallLeft || onWallRight) && !isGrounded;
 
-        // 🧗 Wall Slide (ไถลลงช้า ๆ)
-        if (isOnWall && !isWallJumping)
+        // 🧗 Wall Slide
+        if (isOnWall && !isWallJumping && !isDashing)
         {
             rb.gravityScale = defaultGravity;
 
             if (rb.linearVelocity.y < -wallSlideSpeed)
             {
-                rb.linearVelocity = new Vector2(
-                    rb.linearVelocity.x,
-                    -wallSlideSpeed
-                );
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, -wallSlideSpeed);
             }
         }
-        else
+        else if (!isDashing)
         {
             rb.gravityScale = defaultGravity;
         }
@@ -100,7 +106,24 @@ public class PlayerMove2D : MonoBehaviour
             }
         }
 
-        // ⏱ lock
+        // 🚀 Dash
+        if (Input.GetKeyDown(KeyCode.LeftShift) && dashCooldownTimer <= 0 && !isDashing)
+        {
+            StartDash();
+        }
+
+        // ⏱ Dash timer
+        if (isDashing)
+        {
+            dashTimer -= Time.deltaTime;
+            if (dashTimer <= 0)
+                StopDash();
+        }
+
+        if (dashCooldownTimer > 0)
+            dashCooldownTimer -= Time.deltaTime;
+
+        // ⏱ WallJump lock
         if (isWallJumping)
         {
             wallJumpTimer -= Time.deltaTime;
@@ -117,6 +140,8 @@ public class PlayerMove2D : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (isDashing) return;
+
         if (!isWallJumping)
         {
             rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
@@ -136,6 +161,25 @@ public class PlayerMove2D : MonoBehaviour
             direction * wallJumpForceX,
             wallJumpForceY
         );
+    }
+
+    void StartDash()
+    {
+        isDashing = true;
+        dashTimer = dashTime;
+        dashCooldownTimer = dashCooldown;
+
+        rb.gravityScale = 0f;
+
+        float direction = sr.flipX ? -1 : 1;
+
+        rb.linearVelocity = new Vector2(direction * dashForce, 0);
+    }
+
+    void StopDash()
+    {
+        isDashing = false;
+        rb.gravityScale = defaultGravity;
     }
 
     void OnDrawGizmosSelected()
