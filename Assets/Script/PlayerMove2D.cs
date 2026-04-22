@@ -1,40 +1,35 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerMove2D : MonoBehaviour
 {
     private Rigidbody2D rb;
     private Animator anim;
+    private SpriteRenderer sr;
 
     public float moveSpeed = 5f;
-    float moveInput;
+    private float moveInput;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
+        sr = GetComponent<SpriteRenderer>();
     }
 
     void Update()
     {
-        // ÃÑº input (A = -1, D = 1)
         moveInput = Input.GetAxisRaw("Horizontal");
 
-        // Êè§¤èÒä» Animator
-        anim.SetFloat("Speed", Mathf.Abs(moveInput));
+        anim.SetBool("isWalking", Mathf.Abs(moveInput) > 0.01f);
 
-        // ¾ÅÔ¡µÑÇÅÐ¤Ã
-        if (moveInput > 0)
-            transform.localScale = new Vector3(1, 1, 1);
-        else if (moveInput < 0)
-            transform.localScale = new Vector3(-1, 1, 1);
+        // ðŸ”¥ flip à¹à¸šà¸šà¹„à¸¡à¹ˆà¸¢à¸¸à¹ˆà¸‡à¸à¸±à¸š scale
+        if (moveInput != 0)
+            sr.flipX = moveInput < 0;
     }
 
     void FixedUpdate()
     {
-        // à¤Å×èÍ¹·Õè
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
-        Debug.Log(moveInput);
     }
-
 }
