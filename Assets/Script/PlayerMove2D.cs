@@ -61,10 +61,6 @@ public class PlayerMove2D : MonoBehaviour
     {
         moveInput = Input.GetAxisRaw("Horizontal");
 
-        // Flip
-        if (moveInput != 0)
-            sr.flipX = moveInput < 0;
-
         // Ground check
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
 
@@ -73,6 +69,9 @@ public class PlayerMove2D : MonoBehaviour
         onWallRight = Physics2D.OverlapCircle(wallCheckRight.position, wallRadius, wallLayer);
 
         bool isOnWall = (onWallLeft || onWallRight) && !isGrounded;
+
+        // 🔥 Flip System (แก้ใหม่)
+        HandleFlip(isOnWall);
 
         // 🧗 Wall Slide
         if (isOnWall && !isWallJumping && !isDashing)
@@ -148,6 +147,23 @@ public class PlayerMove2D : MonoBehaviour
         }
     }
 
+    // 🔥 ระบบหัน (หัวใจของปัญหา)
+    void HandleFlip(bool isOnWall)
+    {
+        if (isOnWall)
+        {
+            // หันออกจากกำแพง
+            if (onWallLeft) sr.flipX = false;
+            if (onWallRight) sr.flipX = true;
+        }
+        else if (!isDashing)
+        {
+            // หันตาม input ปกติ
+            if (moveInput != 0)
+                sr.flipX = moveInput < 0;
+        }
+    }
+
     void WallJump(int direction)
     {
         isWallJumping = true;
@@ -161,6 +177,9 @@ public class PlayerMove2D : MonoBehaviour
             direction * wallJumpForceX,
             wallJumpForceY
         );
+
+        // 🔥 หันตามทิศกระโดด
+        sr.flipX = direction < 0;
     }
 
     void StartDash()
