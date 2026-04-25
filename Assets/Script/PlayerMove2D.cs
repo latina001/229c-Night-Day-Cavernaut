@@ -13,6 +13,11 @@ public class PlayerMove2D : MonoBehaviour
     [Header("Jump")]
     public float jumpForce = 8f;
 
+    [Header("Double Jump")]
+    public int maxJumpCount = 2;
+    public float doubleJumpForce = 7f;
+    private int jumpCount;
+
     [Header("Ground Check")]
     public Transform groundCheck;
     public float groundRadius = 0.3f;
@@ -64,16 +69,22 @@ public class PlayerMove2D : MonoBehaviour
         // Ground check
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
 
+        // รีเซ็ต jump เมื่อแตะพื้น
+        if (isGrounded)
+        {
+            jumpCount = 0;
+        }
+
         // Wall check
         onWallLeft = Physics2D.OverlapCircle(wallCheckLeft.position, wallRadius, wallLayer);
         onWallRight = Physics2D.OverlapCircle(wallCheckRight.position, wallRadius, wallLayer);
 
         bool isOnWall = (onWallLeft || onWallRight) && !isGrounded;
 
-        // 🔥 Flip System (แก้ใหม่)
+        // Flip
         HandleFlip(isOnWall);
 
-        // 🧗 Wall Slide
+        // Wall Slide
         if (isOnWall && !isWallJumping && !isDashing)
         {
             rb.gravityScale = defaultGravity;
@@ -88,30 +99,45 @@ public class PlayerMove2D : MonoBehaviour
             rb.gravityScale = defaultGravity;
         }
 
-        // ⬆️ Jump
+        // Jump + Double Jump + Wall Jump
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            if (isGrounded)
+            // Wall Jump (สำคัญ: ให้มาก่อน)
+            if (!isGrounded)
             {
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+                if (onWallLeft)
+                {
+                    WallJump(1);
+                    jumpCount = 1;
+                    return;
+                }
+                else if (onWallRight)
+                {
+                    WallJump(-1);
+                    jumpCount = 1;
+                    return;
+                }
             }
-            else if (onWallLeft)
+
+            // Jump ปกติ + Double Jump
+            if (jumpCount < maxJumpCount)
             {
-                WallJump(1);
-            }
-            else if (onWallRight)
-            {
-                WallJump(-1);
+                if (jumpCount == 0)
+                    rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+                else
+                    rb.linearVelocity = new Vector2(rb.linearVelocity.x, doubleJumpForce);
+
+                jumpCount++;
             }
         }
 
-        // 🚀 Dash
+        // Dash
         if (Input.GetKeyDown(KeyCode.LeftShift) && dashCooldownTimer <= 0 && !isDashing)
         {
             StartDash();
         }
 
-        // ⏱ Dash timer
+        // Dash timer
         if (isDashing)
         {
             dashTimer -= Time.deltaTime;
@@ -122,7 +148,7 @@ public class PlayerMove2D : MonoBehaviour
         if (dashCooldownTimer > 0)
             dashCooldownTimer -= Time.deltaTime;
 
-        // ⏱ WallJump lock
+        // WallJump lock
         if (isWallJumping)
         {
             wallJumpTimer -= Time.deltaTime;
@@ -147,18 +173,15 @@ public class PlayerMove2D : MonoBehaviour
         }
     }
 
-    // 🔥 ระบบหัน (หัวใจของปัญหา)
     void HandleFlip(bool isOnWall)
     {
         if (isOnWall)
         {
-            // หันออกจากกำแพง
             if (onWallLeft) sr.flipX = false;
             if (onWallRight) sr.flipX = true;
         }
         else if (!isDashing)
         {
-            // หันตาม input ปกติ
             if (moveInput != 0)
                 sr.flipX = moveInput < 0;
         }
@@ -170,7 +193,6 @@ public class PlayerMove2D : MonoBehaviour
         wallJumpTimer = wallJumpLockTime;
 
         rb.gravityScale = defaultGravity;
-
         rb.linearVelocity = Vector2.zero;
 
         rb.linearVelocity = new Vector2(
@@ -178,7 +200,6 @@ public class PlayerMove2D : MonoBehaviour
             wallJumpForceY
         );
 
-        // 🔥 หันตามทิศกระโดด
         sr.flipX = direction < 0;
     }
 
@@ -191,7 +212,6 @@ public class PlayerMove2D : MonoBehaviour
         rb.gravityScale = 0f;
 
         float direction = sr.flipX ? -1 : 1;
-
         rb.linearVelocity = new Vector2(direction * dashForce, 0);
     }
 
