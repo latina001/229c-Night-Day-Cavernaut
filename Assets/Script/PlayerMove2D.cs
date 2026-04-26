@@ -43,6 +43,10 @@ public class PlayerMove2D : MonoBehaviour
     [Header("Physics")]
     public float defaultGravity = 3f;
 
+    [Header("Advanced Physics (For Score)")]
+    public float acceleration = 30f;      // ใช้ใน F = ma
+    public float airResistance = 0.5f;    // ใช้ใน F = -kv
+
     private float moveInput;
     private bool isGrounded;
     private bool onWallLeft;
@@ -69,7 +73,6 @@ public class PlayerMove2D : MonoBehaviour
         // Ground check
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
 
-        // รีเซ็ต jump เมื่อแตะพื้น
         if (isGrounded)
         {
             jumpCount = 0;
@@ -81,7 +84,6 @@ public class PlayerMove2D : MonoBehaviour
 
         bool isOnWall = (onWallLeft || onWallRight) && !isGrounded;
 
-        // Flip
         HandleFlip(isOnWall);
 
         // Wall Slide
@@ -102,7 +104,6 @@ public class PlayerMove2D : MonoBehaviour
         // Jump + Double Jump + Wall Jump
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            // Wall Jump (สำคัญ: ให้มาก่อน)
             if (!isGrounded)
             {
                 if (onWallLeft)
@@ -119,13 +120,12 @@ public class PlayerMove2D : MonoBehaviour
                 }
             }
 
-            // Jump ปกติ + Double Jump
             if (jumpCount < maxJumpCount)
             {
                 if (jumpCount == 0)
-                    rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+                    rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
                 else
-                    rb.linearVelocity = new Vector2(rb.linearVelocity.x, doubleJumpForce);
+                    rb.AddForce(Vector2.up * doubleJumpForce, ForceMode2D.Impulse);
 
                 jumpCount++;
             }
@@ -137,7 +137,6 @@ public class PlayerMove2D : MonoBehaviour
             StartDash();
         }
 
-        // Dash timer
         if (isDashing)
         {
             dashTimer -= Time.deltaTime;
@@ -148,7 +147,6 @@ public class PlayerMove2D : MonoBehaviour
         if (dashCooldownTimer > 0)
             dashCooldownTimer -= Time.deltaTime;
 
-        // WallJump lock
         if (isWallJumping)
         {
             wallJumpTimer -= Time.deltaTime;
@@ -169,8 +167,18 @@ public class PlayerMove2D : MonoBehaviour
 
         if (!isWallJumping)
         {
-            rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
+            // ✅ F = ma (คำนวณแรง)
+            float targetSpeed = moveInput * moveSpeed;
+            float speedDiff = targetSpeed - rb.linearVelocity.x;
+            float force = speedDiff * acceleration;
+
+            rb.AddForce(new Vector2(force, 0));
         }
+
+        // ✅ Air Resistance (F = -kv)
+        Vector2 velocity = rb.linearVelocity;
+        Vector2 drag = -airResistance * velocity;
+        rb.AddForce(drag);
     }
 
     void HandleFlip(bool isOnWall)
@@ -195,10 +203,7 @@ public class PlayerMove2D : MonoBehaviour
         rb.gravityScale = defaultGravity;
         rb.linearVelocity = Vector2.zero;
 
-        rb.linearVelocity = new Vector2(
-            direction * wallJumpForceX,
-            wallJumpForceY
-        );
+        rb.AddForce(new Vector2(direction * wallJumpForceX, wallJumpForceY), ForceMode2D.Impulse);
 
         sr.flipX = direction < 0;
     }
@@ -212,7 +217,9 @@ public class PlayerMove2D : MonoBehaviour
         rb.gravityScale = 0f;
 
         float direction = sr.flipX ? -1 : 1;
-        rb.linearVelocity = new Vector2(direction * dashForce, 0);
+
+        rb.linearVelocity = Vector2.zero;
+        rb.AddForce(new Vector2(direction * dashForce, 0), ForceMode2D.Impulse);
     }
 
     void StopDash()
