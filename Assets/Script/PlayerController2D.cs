@@ -25,6 +25,8 @@ public class PlayerController2D : MonoBehaviour
     public float dashForce = 15f;
     public float dashBackForce = 12f;
     public float dashTime = 0.2f;
+    public float dashCooldown = 1f; // เวลาคูลดาวน์
+    float lastDashTime;
     public float normalGravity = 3f;
 
     [Header("Sound")]
@@ -111,13 +113,18 @@ public class PlayerController2D : MonoBehaviour
 
     void Dash()
     {
+        // เช็คคูลดาวน์
+        if (Time.time < lastDashTime + dashCooldown) return;
+
         if (Input.GetKeyDown(KeyCode.LeftShift))
         {
+            lastDashTime = Time.time;
             StartCoroutine(DoDash(false));
         }
 
         if (Input.GetKeyDown(KeyCode.Q))
         {
+            lastDashTime = Time.time;
             StartCoroutine(DoDash(true));
         }
     }
