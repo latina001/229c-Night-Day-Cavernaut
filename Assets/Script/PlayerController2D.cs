@@ -6,6 +6,7 @@ public class PlayerController2D : MonoBehaviour
     Rigidbody2D rb;
     Animator anim;
     SpriteRenderer sr;
+    AudioSource audioSource;
 
     [Header("Move")]
     public float moveSpeed = 5f;
@@ -15,12 +16,29 @@ public class PlayerController2D : MonoBehaviour
     public Transform groundCheck;
     public float groundRadius = 0.2f;
     public LayerMask groundLayer;
+    int jumpCount = 0;
+    public int maxJump = 2;
+    float groundBufferTime = 0.1f;
+    float lastGroundTime;
 
     [Header("Dash")]
     public float dashForce = 15f;
     public float dashBackForce = 12f;
     public float dashTime = 0.2f;
     public float normalGravity = 3f;
+
+    [Header("Sound")]
+    public AudioClip[] footstepSounds;
+    public AudioClip jumpSound;
+    public AudioClip landSound;
+    public AudioClip attackSound;
+    public AudioClip dashSound;
+    public AudioClip dashBackSound;
+    public AudioClip dieSound;
+    public float stepDelay = 0.4f;
+
+    float stepTimer;
+    bool wasGrounded;
 
     bool isGrounded;
     bool isDead = false;
@@ -31,6 +49,7 @@ public class PlayerController2D : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         sr = GetComponent<SpriteRenderer>();
+        audioSource = GetComponent<AudioSource>();
 
         rb.gravityScale = normalGravity;
     }
@@ -43,7 +62,10 @@ public class PlayerController2D : MonoBehaviour
         Jump();
         Attack();
         Dash();
-        UpdateAnimation();
+        UpdateAnimator();
+
+        HandleFootstep();
+        HandleLandingSound();
     }
 
     void Move()
@@ -55,40 +77,45 @@ public class PlayerController2D : MonoBehaviour
             sr.flipX = false;
         else if (move < 0)
             sr.flipX = true;
-
-        anim.SetFloat("Speed", Mathf.Abs(move));
     }
 
     void Jump()
     {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
 
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        if (isGrounded)
+            lastGroundTime = Time.time;
+
+        if (Time.time - lastGroundTime < groundBufferTime)
+            jumpCount = 0;
+
+        if (Input.GetKeyDown(KeyCode.Space) && jumpCount < maxJump)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-        }
+            jumpCount++;
 
-        anim.SetBool("isGrounded", isGrounded);
-        anim.SetFloat("yVelocity", rb.linearVelocity.y);
+            audioSource.PlayOneShot(jumpSound);
+        }
     }
 
     void Attack()
     {
         if (Input.GetMouseButtonDown(0))
         {
+            anim.ResetTrigger("ATK");
             anim.SetTrigger("ATK");
+
+            audioSource.PlayOneShot(attackSound);
         }
     }
 
     void Dash()
     {
-        // Dash ไปข้างหน้า
         if (Input.GetKeyDown(KeyCode.LeftShift))
         {
             StartCoroutine(DoDash(false));
         }
 
-        // Dash ถอยหลัง
         if (Input.GetKeyDown(KeyCode.Q))
         {
             StartCoroutine(DoDash(true));
@@ -100,7 +127,6 @@ public class PlayerController2D : MonoBehaviour
         isDashing = true;
 
         float dir = sr.flipX ? -1 : 1;
-
         rb.gravityScale = 0;
 
         if (isBack)
@@ -108,11 +134,15 @@ public class PlayerController2D : MonoBehaviour
             dir *= -1;
             anim.SetTrigger("DashBack");
             rb.linearVelocity = new Vector2(dir * dashBackForce, 0);
+
+            audioSource.PlayOneShot(dashBackSound);
         }
         else
         {
             anim.SetTrigger("Dash");
             rb.linearVelocity = new Vector2(dir * dashForce, 0);
+
+            audioSource.PlayOneShot(dashSound);
         }
 
         yield return new WaitForSeconds(dashTime);
@@ -121,31 +151,55 @@ public class PlayerController2D : MonoBehaviour
         isDashing = false;
     }
 
-    void UpdateAnimation()
+    void UpdateAnimator()
     {
-        float yVel = rb.linearVelocity.y;
+        anim.SetFloat("Speed", Mathf.Abs(rb.linearVelocity.x));
+        anim.SetBool("isGrounded", isGrounded);
+        anim.SetFloat("yVelocity", rb.linearVelocity.y);
+    }
 
-        if (!isGrounded)
+    void HandleFootstep()
+    {
+        if (Mathf.Abs(rb.linearVelocity.x) > 0.1f && isGrounded)
         {
-            if (yVel > 0)
-                anim.Play("Jump");
-            else if (yVel < 0)
-                anim.Play("Down Jump");
+            stepTimer -= Time.deltaTime;
+
+            if (stepTimer <= 0)
+            {
+                if (footstepSounds.Length > 0)
+                {
+                    audioSource.PlayOneShot(
+                        footstepSounds[Random.Range(0, footstepSounds.Length)]
+                    );
+                }
+
+                stepTimer = stepDelay;
+            }
         }
         else
         {
-            if (Mathf.Abs(rb.linearVelocity.x) > 0.1f)
-                anim.Play("run");
-            else
-                anim.Play("Idle");
+            stepTimer = 0;
         }
+    }
+
+    void HandleLandingSound()
+    {
+        if (!wasGrounded && isGrounded)
+        {
+            audioSource.PlayOneShot(landSound);
+        }
+
+        wasGrounded = isGrounded;
     }
 
     public void Die()
     {
         isDead = true;
         rb.linearVelocity = Vector2.zero;
-        anim.Play("Die");
+
+        anim.SetTrigger("Die");
+
+        audioSource.PlayOneShot(dieSound);
     }
 
     void OnDrawGizmosSelected()
