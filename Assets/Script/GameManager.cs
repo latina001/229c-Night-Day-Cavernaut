@@ -1,21 +1,16 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
 
-    [Header("Player")]
     public Transform player;
     public Vector3 respawnPoint;
 
-    [Header("Life")]
-    public int maxLives = 3;
-    int currentLives;
-
-    [Header("Fade")]
-    public CanvasGroup fadeCanvas;
+    public Image fadeImage;
     public float fadeSpeed = 2f;
 
     void Awake()
@@ -25,7 +20,7 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        // หา Player อัตโนมัติ
+        // 🔥 หา Player อัตโนมัติ
         if (player == null)
         {
             GameObject p = GameObject.FindGameObjectWithTag("Player");
@@ -33,16 +28,16 @@ public class GameManager : MonoBehaviour
                 player = p.transform;
         }
 
-        currentLives = maxLives;
-
+        // 🔥 ตั้งจุดเกิดเริ่มต้น
         if (player != null)
             respawnPoint = player.position;
 
-        // หา Fade อัตโนมัติ
-        GameObject fadeObj = GameObject.Find("Fade");
-        if (fadeObj != null)
+        // 🔥 ตั้งค่า fade เริ่ม
+        if (fadeImage != null)
         {
-            fadeCanvas = fadeObj.GetComponent<CanvasGroup>();
+            Color c = fadeImage.color;
+            c.a = 0f;
+            fadeImage.color = c;
         }
     }
 
@@ -53,50 +48,60 @@ public class GameManager : MonoBehaviour
 
     IEnumerator RespawnRoutine()
     {
-        currentLives--;
+        Debug.Log("🔥 เริ่ม Fade");
 
-        // 🌑 Fade ดำ
-        yield return StartCoroutine(Fade(1));
+        yield return StartCoroutine(Fade(1f)); // 🌑 ดำ
 
-        if (currentLives <= 0)
+        if (player != null)
         {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-            yield break;
+            player.position = respawnPoint;
+
+            Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector2.zero;
+                rb.angularVelocity = 0f;
+            }
+
+            player.GetComponent<PlayerController2D>().Respawn();
         }
 
-        // 🔄 Respawn
-        player.position = respawnPoint;
-
-        Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector2.zero;
-            rb.angularVelocity = 0f;
-        }
-
-        player.GetComponent<PlayerController2D>().Respawn();
-
-        // 🌑 Fade กลับ
-        yield return StartCoroutine(Fade(0));
+        yield return StartCoroutine(Fade(0f)); // 🌕 กลับ
     }
 
     IEnumerator Fade(float target)
     {
-        if (fadeCanvas == null) yield break;
-
-        while (!Mathf.Approximately(fadeCanvas.alpha, target))
+        if (fadeImage == null)
         {
-            fadeCanvas.alpha = Mathf.MoveTowards(
-                fadeCanvas.alpha,
+           
+            yield break;
+        }
+
+        while (!Mathf.Approximately(fadeImage.color.a, target))
+        {
+            float newAlpha = Mathf.MoveTowards(
+                fadeImage.color.a,
                 target,
                 fadeSpeed * Time.deltaTime
             );
+
+            Color c = fadeImage.color;
+            c.a = newAlpha;
+            fadeImage.color = c;
+
             yield return null;
         }
+
+        // 🔥 บังคับให้ตรงเป๊ะ
+        Color final = fadeImage.color;
+        final.a = target;
+        fadeImage.color = final;
     }
 
+    // 📍 Checkpoint
     public void SetCheckpoint(Vector3 pos)
     {
         respawnPoint = pos;
+       
     }
 }

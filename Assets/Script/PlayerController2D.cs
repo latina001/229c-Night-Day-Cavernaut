@@ -61,7 +61,7 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         currentHealth = maxHealth;
 
         rb.gravityScale = 3f;
-        rb.constraints = RigidbodyConstraints2D.FreezeRotation; // กันล้ม
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
     }
 
     void Update()
@@ -72,7 +72,7 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         Move();
         Jump();
         Attack();
-        Dash(); // 🔥 เพิ่มกลับมา
+        Dash();
         UpdateAnimator();
     }
 
@@ -171,7 +171,7 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         yield return new WaitForSeconds(dashTime);
 
         rb.gravityScale = 3f;
-        isDashing = false; // 🔥 สำคัญมาก
+        isDashing = false;
     }
 
     void UpdateAnimator()
@@ -214,10 +214,6 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         if (dieSound) audioSource.PlayOneShot(dieSound);
 
         yield return new WaitForSeconds(1.5f);
-
-        rb.linearVelocity = Vector2.zero;
-        rb.angularVelocity = 0f;
-        rb.constraints = RigidbodyConstraints2D.FreezeAll;
 
         GameManager.instance.PlayerDied();
     }
