@@ -1,7 +1,7 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 
-public class PlayerController2D : MonoBehaviour
+public class PlayerController2D : MonoBehaviour, IDamageable
 {
     Rigidbody2D rb;
     Animator anim;
@@ -16,35 +16,40 @@ public class PlayerController2D : MonoBehaviour
     public Transform groundCheck;
     public float groundRadius = 0.2f;
     public LayerMask groundLayer;
-    int jumpCount = 0;
+
+    int jumpCount;
     public int maxJump = 2;
-    float groundBufferTime = 0.1f;
     float lastGroundTime;
+    float groundBufferTime = 0.1f;
 
     [Header("Dash")]
     public float dashForce = 15f;
     public float dashBackForce = 12f;
     public float dashTime = 0.2f;
-    public float dashCooldown = 1f; // ���Ҥ�Ŵ�ǹ�
+    public float dashCooldown = 1f;
     float lastDashTime;
-    public float normalGravity = 3f;
+    bool isDashing = false;
+
+    [Header("Attack")]
+    public AttackHitbox hitbox;
+
+    [Header("Health")]
+    public float maxHealth = 100f;
+    float currentHealth;
+
+    [Header("Death")]
+    public float fallGravity = 3f;
+    public float deathPush = 6f;
 
     [Header("Sound")]
-    public AudioClip[] footstepSounds;
     public AudioClip jumpSound;
-    public AudioClip landSound;
     public AudioClip attackSound;
     public AudioClip dashSound;
     public AudioClip dashBackSound;
     public AudioClip dieSound;
-    public float stepDelay = 0.4f;
-
-    float stepTimer;
-    bool wasGrounded;
 
     bool isGrounded;
-    bool isDead = false;
-    bool isDashing = false;
+    bool isDead;
 
     void Start()
     {
@@ -53,21 +58,22 @@ public class PlayerController2D : MonoBehaviour
         sr = GetComponent<SpriteRenderer>();
         audioSource = GetComponent<AudioSource>();
 
-        rb.gravityScale = normalGravity;
+        currentHealth = maxHealth;
+
+        rb.gravityScale = 3f;
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation; // กันล้ม
     }
 
     void Update()
     {
-        if (isDead || isDashing) return;
+        if (isDead) return;
+        if (isDashing) return;
 
         Move();
         Jump();
         Attack();
-        Dash();
+        Dash(); // 🔥 เพิ่มกลับมา
         UpdateAnimator();
-
-        HandleFootstep();
-        HandleLandingSound();
     }
 
     void Move()
@@ -75,10 +81,8 @@ public class PlayerController2D : MonoBehaviour
         float move = Input.GetAxis("Horizontal");
         rb.linearVelocity = new Vector2(move * moveSpeed, rb.linearVelocity.y);
 
-        if (move > 0)
-            sr.flipX = false;
-        else if (move < 0)
-            sr.flipX = true;
+        if (move > 0) sr.flipX = false;
+        else if (move < 0) sr.flipX = true;
     }
 
     void Jump()
@@ -96,7 +100,7 @@ public class PlayerController2D : MonoBehaviour
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             jumpCount++;
 
-            audioSource.PlayOneShot(jumpSound);
+            if (jumpSound) audioSource.PlayOneShot(jumpSound);
         }
     }
 
@@ -104,117 +108,133 @@ public class PlayerController2D : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            anim.ResetTrigger("ATK");
             anim.SetTrigger("ATK");
 
-            audioSource.PlayOneShot(attackSound);
+            if (attackSound) audioSource.PlayOneShot(attackSound);
+
+            StartCoroutine(AttackRoutine());
         }
     }
 
+    IEnumerator AttackRoutine()
+    {
+        yield return new WaitForSeconds(0.1f);
+        hitbox.EnableHitbox();
+
+        yield return new WaitForSeconds(0.2f);
+        hitbox.DisableHitbox();
+    }
+
+    // ================= DASH =================
     void Dash()
     {
-        // �礤�Ŵ�ǹ�
         if (Time.time < lastDashTime + dashCooldown) return;
 
         if (Input.GetKeyDown(KeyCode.LeftShift))
         {
             lastDashTime = Time.time;
+
+            if (dashSound) audioSource.PlayOneShot(dashSound);
+
             StartCoroutine(DoDash(false));
         }
 
         if (Input.GetKeyDown(KeyCode.Q))
         {
             lastDashTime = Time.time;
+
+            if (dashBackSound) audioSource.PlayOneShot(dashBackSound);
+
             StartCoroutine(DoDash(true));
         }
     }
 
-    IEnumerator DoDash(bool isBack)
+    IEnumerator DoDash(bool back)
     {
         isDashing = true;
 
         float dir = sr.flipX ? -1 : 1;
         rb.gravityScale = 0;
 
-        if (isBack)
+        if (back)
         {
             dir *= -1;
             anim.SetTrigger("DashBack");
             rb.linearVelocity = new Vector2(dir * dashBackForce, 0);
-
-            audioSource.PlayOneShot(dashBackSound);
         }
         else
         {
             anim.SetTrigger("Dash");
             rb.linearVelocity = new Vector2(dir * dashForce, 0);
-
-            audioSource.PlayOneShot(dashSound);
         }
 
         yield return new WaitForSeconds(dashTime);
 
-        rb.gravityScale = normalGravity;
-        isDashing = false;
+        rb.gravityScale = 3f;
+        isDashing = false; // 🔥 สำคัญมาก
     }
 
     void UpdateAnimator()
     {
         anim.SetFloat("Speed", Mathf.Abs(rb.linearVelocity.x));
-        anim.SetBool("isGrounded", isGrounded);
         anim.SetFloat("yVelocity", rb.linearVelocity.y);
     }
 
-    void HandleFootstep()
+    // ================= DAMAGE =================
+    public void TakeDamage(float damage, Transform attacker)
     {
-        if (Mathf.Abs(rb.linearVelocity.x) > 0.1f && isGrounded)
-        {
-            stepTimer -= Time.deltaTime;
+        if (isDead) return;
 
-            if (stepTimer <= 0)
-            {
-                if (footstepSounds.Length > 0)
-                {
-                    audioSource.PlayOneShot(
-                        footstepSounds[Random.Range(0, footstepSounds.Length)]
-                    );
-                }
+        currentHealth -= damage;
 
-                stepTimer = stepDelay;
-            }
-        }
-        else
+        Vector2 dir = (transform.position - attacker.position).normalized;
+
+        rb.linearVelocity = Vector2.zero;
+        rb.AddForce(dir * 6f, ForceMode2D.Impulse);
+
+        if (currentHealth <= 0)
         {
-            stepTimer = 0;
+            StartCoroutine(DeathRoutine(attacker));
         }
     }
 
-    void HandleLandingSound()
-    {
-        if (!wasGrounded && isGrounded)
-        {
-            audioSource.PlayOneShot(landSound);
-        }
-
-        wasGrounded = isGrounded;
-    }
-
-    public void Die()
+    IEnumerator DeathRoutine(Transform attacker)
     {
         isDead = true;
+
+        Vector2 dir = (transform.position - attacker.position).normalized;
+
         rb.linearVelocity = Vector2.zero;
+        rb.AddForce(dir * deathPush, ForceMode2D.Impulse);
 
-        anim.SetTrigger("Die");
+        rb.gravityScale = fallGravity;
 
-        audioSource.PlayOneShot(dieSound);
+        anim.Play("Die", 0, 0f);
+
+        if (dieSound) audioSource.PlayOneShot(dieSound);
+
+        yield return new WaitForSeconds(1.5f);
+
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.constraints = RigidbodyConstraints2D.FreezeAll;
+
+        GameManager.instance.PlayerDied();
     }
 
-    void OnDrawGizmosSelected()
+    public void Respawn()
     {
-        if (groundCheck != null)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(groundCheck.position, groundRadius);
-        }
+        isDead = false;
+
+        currentHealth = maxHealth;
+
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        rb.gravityScale = 3f;
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+
+        anim.Rebind();
+        anim.Update(0f);
+        anim.Play("Idle");
     }
 }
