@@ -28,7 +28,10 @@ public class PlayerController2D : MonoBehaviour, IDamageable
     public float dashTime = 0.2f;
     public float dashCooldown = 1f;
     float lastDashTime;
-    bool isDashing = false;
+
+    bool isDashing;
+    bool isKnockback;
+    bool isDead;
 
     [Header("Attack")]
     public AttackHitbox hitbox;
@@ -37,9 +40,13 @@ public class PlayerController2D : MonoBehaviour, IDamageable
     public float maxHealth = 100f;
     float currentHealth;
 
+    [Header("Knockback")]
+    public float hitKnockback = 6f;     // 🟡 โดนตี
+    public float deathKnockback = 10f;  // 🔴 ตาย
+    public float knockbackTime = 0.15f;
+
     [Header("Death")]
     public float fallGravity = 3f;
-    public float deathPush = 6f;
 
     [Header("Sound")]
     public AudioClip jumpSound;
@@ -49,7 +56,6 @@ public class PlayerController2D : MonoBehaviour, IDamageable
     public AudioClip dieSound;
 
     bool isGrounded;
-    bool isDead;
 
     void Start()
     {
@@ -68,14 +74,17 @@ public class PlayerController2D : MonoBehaviour, IDamageable
     {
         if (isDead) return;
         if (isDashing) return;
+        if (isKnockback) return;
 
         Move();
         Jump();
         Attack();
         Dash();
+
         UpdateAnimator();
     }
 
+    // ================= MOVE =================
     void Move()
     {
         float move = Input.GetAxis("Horizontal");
@@ -85,6 +94,7 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         else if (move < 0) sr.flipX = true;
     }
 
+    // ================= JUMP =================
     void Jump()
     {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
@@ -104,14 +114,13 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         }
     }
 
+    // ================= ATTACK =================
     void Attack()
     {
         if (Input.GetMouseButtonDown(0))
         {
             anim.SetTrigger("ATK");
-
             if (attackSound) audioSource.PlayOneShot(attackSound);
-
             StartCoroutine(AttackRoutine());
         }
     }
@@ -133,18 +142,14 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         if (Input.GetKeyDown(KeyCode.LeftShift))
         {
             lastDashTime = Time.time;
-
             if (dashSound) audioSource.PlayOneShot(dashSound);
-
             StartCoroutine(DoDash(false));
         }
 
         if (Input.GetKeyDown(KeyCode.Q))
         {
             lastDashTime = Time.time;
-
             if (dashBackSound) audioSource.PlayOneShot(dashBackSound);
-
             StartCoroutine(DoDash(true));
         }
     }
@@ -174,12 +179,6 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         isDashing = false;
     }
 
-    void UpdateAnimator()
-    {
-        anim.SetFloat("Speed", Mathf.Abs(rb.linearVelocity.x));
-        anim.SetFloat("yVelocity", rb.linearVelocity.y);
-    }
-
     // ================= DAMAGE =================
     public void TakeDamage(float damage, Transform attacker)
     {
@@ -189,8 +188,7 @@ public class PlayerController2D : MonoBehaviour, IDamageable
 
         Vector2 dir = (transform.position - attacker.position).normalized;
 
-        rb.linearVelocity = Vector2.zero;
-        rb.AddForce(dir * 6f, ForceMode2D.Impulse);
+        StartCoroutine(HitKnockback(dir));
 
         if (currentHealth <= 0)
         {
@@ -198,6 +196,20 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         }
     }
 
+    // ================= HIT KNOCKBACK =================
+    IEnumerator HitKnockback(Vector2 dir)
+    {
+        isKnockback = true;
+
+        rb.linearVelocity = Vector2.zero;
+        rb.AddForce(dir * hitKnockback, ForceMode2D.Impulse);
+
+        yield return new WaitForSeconds(knockbackTime);
+
+        isKnockback = false;
+    }
+
+    // ================= DEATH =================
     IEnumerator DeathRoutine(Transform attacker)
     {
         isDead = true;
@@ -205,7 +217,7 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         Vector2 dir = (transform.position - attacker.position).normalized;
 
         rb.linearVelocity = Vector2.zero;
-        rb.AddForce(dir * deathPush, ForceMode2D.Impulse);
+        rb.AddForce(dir * deathKnockback, ForceMode2D.Impulse);
 
         rb.gravityScale = fallGravity;
 
@@ -218,9 +230,19 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         GameManager.instance.PlayerDied();
     }
 
+    // ================= ANIMATION =================
+    void UpdateAnimator()
+    {
+        anim.SetFloat("Speed", Mathf.Abs(rb.linearVelocity.x));
+        anim.SetFloat("yVelocity", rb.linearVelocity.y);
+    }
+
+    // ================= RESPAWN =================
     public void Respawn()
     {
         isDead = false;
+        isKnockback = false;
+        isDashing = false;
 
         currentHealth = maxHealth;
 

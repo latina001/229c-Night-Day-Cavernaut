@@ -6,6 +6,10 @@ public class BatEnemy : MonoBehaviour, IDamageable
     [Header("Target")]
     public Transform player;
 
+    [Header("Area")]
+    public Transform centerPoint;     // จุดกลางโซนบิน
+    public float roamRadius = 4f;     // รัศมีบินวน
+
     [Header("Stats")]
     public float health = 30f;
 
@@ -13,6 +17,7 @@ public class BatEnemy : MonoBehaviour, IDamageable
     public float speed = 3f;
     public float chaseRange = 8f;
     public float stopDistance = 1.5f;
+    public float roamSpeed = 2f;
 
     [Header("Attack")]
     public float damage = 10f;
@@ -24,9 +29,9 @@ public class BatEnemy : MonoBehaviour, IDamageable
     public float hitStun = 0.3f;
 
     [Header("Death")]
-    public float deathTime = 1.5f;     // ⏱ เวลารอก่อนหาย
-    public float fallGravity = 3f;     // 🌍 แรงตกตอนตาย
-    public float deathPushForce = 5f;  // 💥 แรงกระเด็นตอนตาย
+    public float deathTime = 1.5f;
+    public float fallGravity = 3f;
+    public float deathPushForce = 5f;
 
     Rigidbody2D rb;
     Animator anim;
@@ -35,6 +40,8 @@ public class BatEnemy : MonoBehaviour, IDamageable
 
     bool isDead;
     bool isHit;
+
+    Vector2 roamTarget;
 
     void Start()
     {
@@ -46,34 +53,62 @@ public class BatEnemy : MonoBehaviour, IDamageable
         if (player == null)
             player = GameObject.FindGameObjectWithTag("Player").transform;
 
-        // 🦇 ปกติบิน = ไม่มีแรงโน้มถ่วง
         rb.gravityScale = 0;
+
+        PickNewRoamPoint();
     }
 
     void Update()
     {
         if (isDead || isHit) return;
 
-        float dist = Vector2.Distance(transform.position, player.position);
+        float distToPlayer = Vector2.Distance(transform.position, player.position);
 
-        if (dist <= chaseRange)
+        if (distToPlayer <= chaseRange)
         {
-            Vector2 dir = (player.position - transform.position).normalized;
-
-            rb.linearVelocity = dir * speed;
-
-            sr.flipX = dir.x < 0;
-
-            if (dist <= stopDistance)
-                Attack();
+            ChasePlayer(distToPlayer);
         }
         else
         {
-            rb.linearVelocity = Vector2.zero;
+            Roam();
         }
     }
 
-    // ---------------- ATTACK ----------------
+    // ================= CHASE =================
+    void ChasePlayer(float dist)
+    {
+        Vector2 dir = (player.position - transform.position).normalized;
+
+        rb.linearVelocity = dir * speed;
+
+        sr.flipX = dir.x < 0;
+
+        if (dist <= stopDistance)
+            Attack();
+    }
+
+    // ================= ROAM (บินในพื้นที่) =================
+    void Roam()
+    {
+        if (Vector2.Distance(transform.position, roamTarget) < 0.3f)
+        {
+            PickNewRoamPoint();
+        }
+
+        Vector2 dir = (roamTarget - (Vector2)transform.position).normalized;
+
+        rb.linearVelocity = dir * roamSpeed;
+
+        sr.flipX = dir.x < 0;
+    }
+
+    void PickNewRoamPoint()
+    {
+        Vector2 random = Random.insideUnitCircle * roamRadius;
+        roamTarget = (Vector2)centerPoint.position + random;
+    }
+
+    // ================= ATTACK =================
     void Attack()
     {
         if (Time.time < lastAttack + cooldown) return;
@@ -89,7 +124,7 @@ public class BatEnemy : MonoBehaviour, IDamageable
         }
     }
 
-    // ---------------- TAKE DAMAGE ----------------
+    // ================= DAMAGE =================
     public void TakeDamage(float damage, Transform attacker)
     {
         if (isDead) return;
@@ -109,7 +144,6 @@ public class BatEnemy : MonoBehaviour, IDamageable
         }
     }
 
-    // ---------------- HIT ----------------
     IEnumerator Hit()
     {
         isHit = true;
@@ -121,39 +155,41 @@ public class BatEnemy : MonoBehaviour, IDamageable
         isHit = false;
     }
 
-    // ---------------- DIE (ตกพื้นจริง) ----------------
+    // ================= DEATH =================
     IEnumerator DeathRoutine(Transform attacker)
     {
         isDead = true;
 
         StopAllCoroutines();
 
-        // 🔥 หยุดก่อน
         rb.linearVelocity = Vector2.zero;
 
-        // 💥 กระเด็นออกจาก attacker
         Vector2 dir = (transform.position - attacker.position).normalized;
         rb.AddForce(dir * deathPushForce, ForceMode2D.Impulse);
 
-        // 🌍 เปิดแรงโน้มถ่วงให้ตก
         rb.gravityScale = fallGravity;
 
-        // ❗ ไม่ปิด simulated (จะได้ตกได้จริง)
+        if (col) col.enabled = false;
 
-        // 🔥 ปิด collider กันชนมั่ว
-        if (col != null)
-            col.enabled = false;
-
-        // 🔥 กัน animation ตีกัน
         anim.ResetTrigger("Hit");
         anim.ResetTrigger("Attack");
 
-        // 💀 เล่น animation ตาย
         anim.SetTrigger("Death");
 
-        // ⏱ รอจนเล่นจบ
         yield return new WaitForSeconds(deathTime);
 
         Destroy(gameObject);
+    }
+
+    // ================= DEBUG AREA =================
+    void OnDrawGizmosSelected()
+    {
+        if (centerPoint == null) return;
+
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(centerPoint.position, roamRadius);
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, chaseRange);
     }
 }
