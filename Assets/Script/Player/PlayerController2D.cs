@@ -36,16 +36,22 @@ public class PlayerController2D : MonoBehaviour, IDamageable
     [Header("Attack")]
     public AttackHitbox hitbox;
 
-    [Header("Health")]
-    public float maxHealth = 100f;
-    float currentHealth;
+    [Header("Health (Hearts)")]
+    public int maxHearts = 3;
+    int currentHearts;
 
-    [Header("Knockback")]
-    public float hitKnockback = 6f;     // 🟡 โดนตี
-    public float deathKnockback = 10f;  // 🔴 ตาย
-    public float knockbackTime = 0.15f;
+    [Header("Knockback (โดนตี)")]
+    public float hitKnockbackX = 4f;   // 🟡 เด้งซ้าย/ขวา
+    public float hitKnockbackY = 3f;   // 🟡 เด้งขึ้นนิดหน่อย
+    public float knockbackTime = 0.2f;
+
+    [Header("Invincibility (อมตะชั่วคราว)")]
+    public float invincibleDuration = 1.5f;  // วินาทีที่อมตะ
+    public float blinkInterval = 0.1f;       // กระพริบทุก X วินาที
+    bool isInvincible;
 
     [Header("Death")]
+    public float deathKnockback = 10f;
     public float fallGravity = 3f;
 
     [Header("Sound")]
@@ -54,6 +60,7 @@ public class PlayerController2D : MonoBehaviour, IDamageable
     public AudioClip dashSound;
     public AudioClip dashBackSound;
     public AudioClip dieSound;
+    public AudioClip hurtSound;
 
     bool isGrounded;
 
@@ -64,7 +71,7 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         sr = GetComponent<SpriteRenderer>();
         audioSource = GetComponent<AudioSource>();
 
-        currentHealth = maxHealth;
+        currentHearts = maxHearts;
 
         rb.gravityScale = 3f;
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
@@ -183,36 +190,66 @@ public class PlayerController2D : MonoBehaviour, IDamageable
     public void TakeDamage(float damage, Transform attacker)
     {
         if (isDead) return;
+        if (isInvincible) return;   // 🛡️ กำลังอมตะ ไม่รับดาเมจ
 
-        currentHealth -= damage;
+        currentHearts--;
 
-        Vector2 dir = (transform.position - attacker.position).normalized;
+        // อัพเดต UI หัวใจ
+        if (HeartUI.instance != null)
+            HeartUI.instance.LoseHeart();
 
-        StartCoroutine(HitKnockback(dir));
+        if (hurtSound) audioSource.PlayOneShot(hurtSound);
 
-        if (currentHealth <= 0)
+        if (currentHearts <= 0)
         {
             StartCoroutine(DeathRoutine(attacker));
         }
+        else
+        {
+            // 🟡 เด้งกลับเบาๆ + เปิดอมตะ
+            Vector2 knockDir = (transform.position - attacker.position).normalized;
+            StartCoroutine(HitRoutine(knockDir));
+        }
     }
 
-    // ================= HIT KNOCKBACK =================
-    IEnumerator HitKnockback(Vector2 dir)
+    // ================= HIT ROUTINE =================
+    IEnumerator HitRoutine(Vector2 knockDir)
     {
         isKnockback = true;
+        isInvincible = true;
 
+        // เด้งซ้าย/ขวา + ขึ้นนิดหน่อย
         rb.linearVelocity = Vector2.zero;
-        rb.AddForce(dir * hitKnockback, ForceMode2D.Impulse);
+        rb.AddForce(new Vector2(knockDir.x * hitKnockbackX, hitKnockbackY), ForceMode2D.Impulse);
 
         yield return new WaitForSeconds(knockbackTime);
-
         isKnockback = false;
+
+        // 🌟 กระพริบตลอดช่วงอมตะ
+        yield return StartCoroutine(BlinkRoutine(invincibleDuration));
+
+        isInvincible = false;
+        sr.enabled = true; // ให้แน่ใจว่า sprite ปรากฏ
+    }
+
+    IEnumerator BlinkRoutine(float duration)
+    {
+        float timer = 0f;
+        while (timer < duration)
+        {
+            sr.enabled = !sr.enabled;
+            yield return new WaitForSeconds(blinkInterval);
+            timer += blinkInterval;
+        }
+        sr.enabled = true;
     }
 
     // ================= DEATH =================
     IEnumerator DeathRoutine(Transform attacker)
     {
         isDead = true;
+        isInvincible = false;
+        sr.enabled = true;
 
         Vector2 dir = (transform.position - attacker.position).normalized;
 
@@ -243,8 +280,14 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         isDead = false;
         isKnockback = false;
         isDashing = false;
+        isInvincible = false;
 
-        currentHealth = maxHealth;
+        currentHearts = maxHearts;
+        sr.enabled = true;
+
+        // รีเซ็ต UI หัวใจ
+        if (HeartUI.instance != null)
+            HeartUI.instance.ResetHearts();
 
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         rb.gravityScale = 3f;
