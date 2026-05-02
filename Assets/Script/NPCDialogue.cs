@@ -1,9 +1,17 @@
 ﻿using UnityEngine;
+using TMPro;
 
 public class NPCDialogue : MonoBehaviour
 {
+    [Header("UI")]
     public GameObject dialogueUI;
+    public TMP_Text dialogueText;
 
+    [Header("Dialogue Lines")]
+    [TextArea]
+    public string[] lines;
+
+    int index = 0;
     bool playerInRange;
 
     void Start()
@@ -16,16 +24,32 @@ public class NPCDialogue : MonoBehaviour
     {
         if (playerInRange && Input.GetKeyDown(KeyCode.E))
         {
-            ToggleDialogue();
+            ShowDialogue();
         }
     }
 
-    void ToggleDialogue()
+    void ShowDialogue()
     {
-        if (dialogueUI == null) return;
+        if (lines.Length == 0) return;
 
-        bool isActive = dialogueUI.activeSelf;
-        dialogueUI.SetActive(!isActive);
+        // เปิด UI ถ้ายังไม่เปิด
+        if (!dialogueUI.activeSelf)
+        {
+            dialogueUI.SetActive(true);
+            index = 0;
+        }
+
+        // แสดงข้อความปัจจุบัน
+        dialogueText.text = lines[index];
+
+        // เลื่อนไปข้อความถัดไป
+        index++;
+
+        // วนกลับถ้าหมด
+        if (index >= lines.Length)
+        {
+            index = 0;
+        }
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -33,7 +57,6 @@ public class NPCDialogue : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playerInRange = true;
-            Debug.Log("💬 Press E to talk");
         }
     }
 
@@ -45,6 +68,8 @@ public class NPCDialogue : MonoBehaviour
 
             if (dialogueUI != null)
                 dialogueUI.SetActive(false);
+
+            index = 0; // รีเซ็ตบทสนทนา
         }
     }
 }
