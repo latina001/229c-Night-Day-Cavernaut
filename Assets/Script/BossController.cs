@@ -20,7 +20,20 @@ public class BossController : MonoBehaviour, IDamageable
     [Header("References")]
     public Transform player;
 
-    [Header("Boss HP Bar UI")][Tooltip("ลาก GameObject ที่มี BossHealthBar script ใส่")] public BossHealthBar bossHealthBar; [Header("Victory Screen")][Tooltip("ลาก GameObject ที่มี VictoryScreen script ใส่")] public VictoryScreen victoryScreen;
+    [Header("Boss HP Bar UI")]
+    [Tooltip("ลาก GameObject ที่มี BossHealthBar script ใส่")]
+    public BossHealthBar bossHealthBar;
+
+    [Header("Victory Screen")]
+    [Tooltip("ลาก GameObject ที่มี VictoryScreen script ใส่")]
+    public VictoryScreen victoryScreen;
+
+    [Header("Objects After Boss Death")]
+    [Tooltip("Objects to SHOW after boss dies (door, item, exit)")]
+    public GameObject[] objectsToShowOnDeath;
+
+    [Tooltip("Objects to HIDE after boss dies (wall, barrier)")]
+    public GameObject[] objectsToHideOnDeath;
 
     // ──────────── Health ────────────
     [Header("Health")]
@@ -116,6 +129,14 @@ public class BossController : MonoBehaviour, IDamageable
             if (p) player = p.transform;
         }
 
+        // ซ่อน Objects ที่รอให้บอสตายก่อน
+        foreach (var obj in objectsToShowOnDeath)
+            if (obj != null) obj.SetActive(false);
+
+        // แสดง Objects ที่จะซ่อนตอนบอสตาย
+        foreach (var obj in objectsToHideOnDeath)
+            if (obj != null) obj.SetActive(true);
+
         // เริ่ม HP bar
         if (bossHealthBar != null)
             bossHealthBar.Init(maxHealth);
@@ -142,6 +163,8 @@ public class BossController : MonoBehaviour, IDamageable
 
     IEnumerator DoAction(int index)
     {
+        if (state == BossState.Dead) yield break;  // ตายแล้วไม่ทำท่าอีก
+
         switch (index)
         {
             case 0: yield return StartCoroutine(Action_WalkAndPeck()); break;
@@ -378,38 +401,44 @@ public class BossController : MonoBehaviour, IDamageable
 
     IEnumerator HurtFlash()
     {
+        if (state == BossState.Dead) yield break;  // ตายแล้วไม่ flash
         sr.color = Color.red;
         anim.Play("Hurt");
         yield return new WaitForSeconds(0.15f);
-        sr.color = Color.white;
+        if (state != BossState.Dead)
+            sr.color = Color.white;
     }
 
     IEnumerator DieRoutine()
     {
-        state = BossState.Dead;
-        StopAllCoroutines();
-        StartCoroutine(DieRoutineInternal());
-        yield break;
-    }
+        state = BossState.Dead;  // flag นี้จะหยุด loop และ coroutine อื่นๆ เอง
 
-    IEnumerator DieRoutineInternal()
-    {
-        state = BossState.Dead;
+        // ── Death animation ──
         rb.linearVelocity = Vector2.zero;
         anim.Play("Death");
         PlaySound(soundDeath);
 
         yield return new WaitForSeconds(2f);
 
-        // แสดงหน้าจบเกม
+        // ── เปิด/ปิด Objects หลังบอสตาย ──
+        foreach (var obj in objectsToShowOnDeath)
+            if (obj != null) obj.SetActive(true);
+
+        foreach (var obj in objectsToHideOnDeath)
+            if (obj != null) obj.SetActive(false);
+
+        // ── แสดงหน้าจบเกม ──
         if (victoryScreen != null)
             victoryScreen.Show();
         else if (VictoryScreen.instance != null)
             VictoryScreen.instance.Show();
 
-        // รอสักครู่แล้วค่อย Destroy บอส
+        // ── ซ่อน sprite บอส ──
         yield return new WaitForSeconds(0.5f);
-        Destroy(gameObject);
+        if (sr != null) sr.enabled = false;
+        if (rb != null) rb.simulated = false;
+
+        Destroy(gameObject, 1f);
     }
 
     // ──────────── Helpers ────────────

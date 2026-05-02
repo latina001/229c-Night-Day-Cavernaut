@@ -11,7 +11,13 @@ public class GameManager : MonoBehaviour
     public Vector3 respawnPoint;
 
     public Image fadeImage;
-    public float fadeSpeed = 2f;
+
+    [Header("Fade Settings")]
+    [Tooltip("ระยะเวลา Fade ดำ (วิ) ตอนผู้เล่นตาย")]
+    public float fadeOutDuration = 0.5f;
+
+    [Tooltip("ระยะเวลา Fade กลับ (วิ) ตอน respawn")]
+    public float fadeInDuration = 0.8f;
 
     void Awake()
     {
@@ -20,7 +26,6 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        // 🔥 หา Player อัตโนมัติ
         if (player == null)
         {
             GameObject p = GameObject.FindGameObjectWithTag("Player");
@@ -28,11 +33,9 @@ public class GameManager : MonoBehaviour
                 player = p.transform;
         }
 
-        // 🔥 ตั้งจุดเกิดเริ่มต้น
         if (player != null)
             respawnPoint = player.position;
 
-        // 🔥 ตั้งค่า fade เริ่ม
         if (fadeImage != null)
         {
             Color c = fadeImage.color;
@@ -48,9 +51,7 @@ public class GameManager : MonoBehaviour
 
     IEnumerator RespawnRoutine()
     {
-        Debug.Log("🔥 เริ่ม Fade");
-
-        yield return StartCoroutine(Fade(1f)); // 🌑 ดำ
+        yield return StartCoroutine(Fade(1f, fadeOutDuration));   // ดำ
 
         if (player != null)
         {
@@ -66,33 +67,43 @@ public class GameManager : MonoBehaviour
             player.GetComponent<PlayerController2D>().Respawn();
         }
 
-        yield return StartCoroutine(Fade(0f)); // 🌕 กลับ
+        yield return StartCoroutine(Fade(0f, fadeInDuration));    // กลับ
     }
 
-    IEnumerator Fade(float target)
+    /// <summary>
+    /// Fade ไปยัง alpha ที่กำหนด
+    /// </summary>
+    /// <param name="target">alpha ปลายทาง (0 = ใส, 1 = ดำ)</param>
+    /// <param name="duration">ระยะเวลา (วิ)</param>
+    public IEnumerator Fade(float target, float duration)
     {
-        if (fadeImage == null)
+        if (fadeImage == null) yield break;
+
+        float startAlpha = fadeImage.color.a;
+        float elapsed = 0f;
+
+        // ป้องกัน duration = 0 หาร 0
+        if (duration <= 0f)
         {
-           
+            Color instant = fadeImage.color;
+            instant.a = target;
+            fadeImage.color = instant;
             yield break;
         }
 
-        while (!Mathf.Approximately(fadeImage.color.a, target))
+        while (elapsed < duration)
         {
-            float newAlpha = Mathf.MoveTowards(
-                fadeImage.color.a,
-                target,
-                fadeSpeed * Time.deltaTime
-            );
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
 
             Color c = fadeImage.color;
-            c.a = newAlpha;
+            c.a = Mathf.Lerp(startAlpha, target, t);
             fadeImage.color = c;
 
             yield return null;
         }
 
-        // 🔥 บังคับให้ตรงเป๊ะ
+        // บังคับตรงเป๊ะ
         Color final = fadeImage.color;
         final.a = target;
         fadeImage.color = final;
@@ -102,6 +113,5 @@ public class GameManager : MonoBehaviour
     public void SetCheckpoint(Vector3 pos)
     {
         respawnPoint = pos;
-       
     }
 }

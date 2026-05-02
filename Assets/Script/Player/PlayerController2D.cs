@@ -36,9 +36,6 @@ public class PlayerController2D : MonoBehaviour, IDamageable
     [Header("Attack")]
     public AttackHitbox hitbox;
 
-    [Header("Attack FX")]
-    public Animator fxAnim;
-
     [Header("Health (Hearts)")]
     public int maxHearts = 3;
     int currentHearts;
@@ -56,6 +53,9 @@ public class PlayerController2D : MonoBehaviour, IDamageable
     [Header("Death")]
     public float deathKnockback = 10f;
     public float fallGravity = 3f;
+
+    [Tooltip("รอกี่วินาทีหลังตายก่อน respawn")]
+    public float deathDelay = 2.5f;
 
     [Header("Sound")]
     public AudioClip jumpSound;
@@ -89,7 +89,6 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         Move();
         Jump();
         Attack();
-        PlayAttackFX();
         Dash();
 
         UpdateAnimator();
@@ -134,12 +133,6 @@ public class PlayerController2D : MonoBehaviour, IDamageable
             if (attackSound) audioSource.PlayOneShot(attackSound);
             StartCoroutine(AttackRoutine());
         }
-    }
-
-    public void PlayAttackFX()
-    {
-        if (fxAnim != null)
-            fxAnim.SetTrigger("Attack");
     }
 
     IEnumerator AttackRoutine()
@@ -272,7 +265,7 @@ public class PlayerController2D : MonoBehaviour, IDamageable
 
         if (dieSound) audioSource.PlayOneShot(dieSound);
 
-        yield return new WaitForSeconds(1.5f);
+        yield return new WaitForSeconds(deathDelay);
 
         GameManager.instance.PlayerDied();
     }
