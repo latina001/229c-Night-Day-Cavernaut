@@ -57,6 +57,11 @@ public class MainMenu : MonoBehaviour
         SceneManager.LoadScene("Level1");
     }
 
+    public void BackGame()
+    {
+        SceneManager.LoadScene("Main Menu");
+    }
+
     // 🔹 ออกจากเกม
     public void QuitGame()
     {
