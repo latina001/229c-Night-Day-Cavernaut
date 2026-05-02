@@ -36,6 +36,9 @@ public class PlayerController2D : MonoBehaviour, IDamageable
     [Header("Attack")]
     public AttackHitbox hitbox;
 
+    [Header("Attack FX")]
+    public Animator fxAnim;
+
     [Header("Health (Hearts)")]
     public int maxHearts = 3;
     int currentHearts;
@@ -86,6 +89,7 @@ public class PlayerController2D : MonoBehaviour, IDamageable
         Move();
         Jump();
         Attack();
+        PlayAttackFX();
         Dash();
 
         UpdateAnimator();
@@ -130,6 +134,12 @@ public class PlayerController2D : MonoBehaviour, IDamageable
             if (attackSound) audioSource.PlayOneShot(attackSound);
             StartCoroutine(AttackRoutine());
         }
+    }
+
+    public void PlayAttackFX()
+    {
+        if (fxAnim != null)
+            fxAnim.SetTrigger("Attack");
     }
 
     IEnumerator AttackRoutine()
