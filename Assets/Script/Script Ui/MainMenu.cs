@@ -3,24 +3,31 @@ using UnityEngine.SceneManagement;
 
 public class MainMenu : MonoBehaviour
 {
-    public GameObject panel;
+    [Header("Panels")]
+    public GameObject panel;        // เมนูหลัก
+    public GameObject creditsPanel; // เครดิต
 
     void Start()
     {
-        // 🔥 สำคัญมาก
         Time.timeScale = 1f;
 
-        // 🖱️ ให้ใช้เมาส์ได้
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
         if (panel != null)
             panel.SetActive(false);
+
+        if (creditsPanel != null)
+            creditsPanel.SetActive(false);
     }
 
+    // 🔹 เมนูหลัก
     public void ShowPanel()
     {
         panel.SetActive(true);
+
+        if (creditsPanel != null)
+            creditsPanel.SetActive(false);
     }
 
     public void HidePanel()
@@ -28,11 +35,29 @@ public class MainMenu : MonoBehaviour
         panel.SetActive(false);
     }
 
+    // 🔹 Credits
+    public void ShowCredits()
+    {
+        if (creditsPanel != null)
+            creditsPanel.SetActive(true);
+
+        if (panel != null)
+            panel.SetActive(false);
+    }
+
+    public void HideCredits()
+    {
+        if (creditsPanel != null)
+            creditsPanel.SetActive(false);
+    }
+
+    // 🔹 เริ่มเกม
     public void StartGame()
     {
         SceneManager.LoadScene("Level1");
     }
 
+    // 🔹 ออกจากเกม
     public void QuitGame()
     {
         Application.Quit();
